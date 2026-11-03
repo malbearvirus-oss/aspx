@@ -61,25 +61,28 @@
 
 <script>
   let stage = 1;
-  const input = document.getElementById('commandInput');
   const terminal = document.getElementById('terminal');
 
+  // Foco automático ao clicar em qualquer lugar da tela
   document.addEventListener('click', () => {
-    input.focus();
+    const activeInput = document.getElementById('commandInput');
+    if (activeInput) activeInput.focus();
   });
 
-  input.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
+  // Ouve o Enter em qualquer input que existir no terminal
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && e.target && e.target.id === 'commandInput') {
+      const input = e.target;
       const val = input.value.trim();
       
       const echoDiv = document.createElement('div');
       echoDiv.className = 'line';
-      echoDiv.textContent = `>> Enter Password ${stage}: ${val}`;
-      terminal.insertBefore(echoDiv, input.parentNode);
-
-      input.value = '';
-
+      
       if (stage === 1) {
+        echoDiv.textContent = `>> Enter Password 1: ${val}`;
+        terminal.insertBefore(echoDiv, input.parentNode);
+        input.value = '';
+
         if (val.toLowerCase() === 'stars') {
           printMessage('[OK] Stage 1 bypass successful!', 'success');
           stage = 2;
@@ -88,8 +91,14 @@
           printMessage('[ERROR] Invalid password. Access denied. Try again.', 'error');
         }
       } else if (stage === 2) {
-        if (val.toUpperCase() === 'BLAME_JONH') {
+        echoDiv.textContent = `>> Enter authorization key: ${val}`;
+        terminal.insertBefore(echoDiv, input.parentNode);
+        input.value = '';
+
+        // Aceita tanto BLAME_JONH quanto BALME_JONH para evitar travamentos por digitação
+        if (val.toUpperCase() === 'BLAME_JONH' || val.toUpperCase() === 'BALME_JONH') {
           printMessage('[OK] Key accepted! Decrypting secondary payload...', 'success');
+          stage = 3; // Bloqueia novos envios durante a vitória
           setTimeout(triggerVictory, 2000);
         } else {
           printMessage("Oops, looks like you got it wrong. Try again if you have the patience...", 'error');
@@ -99,10 +108,16 @@
   });
 
   function printMessage(text, className) {
+    const currentInput = document.getElementById('commandInput');
     const div = document.createElement('div');
-    div.className = `line ${className}`;
+    div.className = `line ${className || ''}`;
     div.textContent = text;
-    terminal.insertBefore(div, input.parentNode);
+    
+    if (currentInput && currentInput.parentNode) {
+      terminal.insertBefore(div, currentInput.parentNode);
+    } else {
+      terminal.appendChild(div);
+    }
     window.scrollTo(0, document.body.scrollHeight);
   }
 
@@ -123,32 +138,8 @@
       </div>
     `;
     
-    rebindInput();
-  }
-
-  function rebindInput() {
     const newInput = document.getElementById('commandInput');
-    newInput.focus();
-    
-    newInput.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
-        const val = newInput.value.trim();
-        
-        const echoDiv = document.createElement('div');
-        echoDiv.className = 'line';
-        echoDiv.textContent = `>> Enter authorization key: ${val}`;
-        terminal.insertBefore(echoDiv, newInput.parentNode);
-
-        newInput.value = '';
-
-        if (val.toUpperCase() === 'BLAME_JONH') {
-          printMessage('[OK] Key accepted! Decrypting secondary payload...', 'success');
-          setTimeout(triggerVictory, 2000);
-        } else {
-          printMessage("Oops, looks like you got it wrong. Try again if you have the patience...", 'error');
-        }
-      }
-    });
+    if (newInput) newInput.focus();
   }
 
   function triggerVictory() {
@@ -164,7 +155,11 @@
     printMessage('Terminating connection in 5 seconds...', 'line');
     
     setTimeout(() => {
-      terminal.innerHTML += '<div class="line">[CONNECTION CLOSED]</div>';
+      printMessage('[CONNECTION CLOSED]', 'line');
+      const input = document.getElementById('commandInput');
+      if (input && input.parentNode) {
+        input.parentNode.remove();
+      }
     }, 5000);
   }
 </script>
